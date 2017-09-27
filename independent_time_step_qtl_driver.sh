@@ -11,6 +11,6 @@ normalization_method="$9"
 
 
 chrom_num="1"
-time_step="2"
+time_step="1"
 
-python independent_time_step_qtl_chromosome_specific.py $het_prob_genotype_file $allelic_counts_file $output_file_prefix$time_step"_"$chrom_num"_" $min_reads $min_samples_per_time_step $min_fraction_in_test_group $distance $statistical_test $normalization_method $chrom_num $time_step
+python independent_time_step_qtl_chromosome_specific.py $het_prob_genotype_file $allelic_counts_file $output_file_prefix"time_step_"$time_step"_chrom_"$chrom_num $min_reads $min_samples_per_time_step $min_fraction_in_test_group $distance $statistical_test $normalization_method $chrom_num $time_step

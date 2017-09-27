@@ -55,9 +55,9 @@ independent_time_step_qtl_dir=$ipsc_qtl_root"independent_time_step_qtl/"
 # Cis eqtl distance (EAGLE used 200 KB)
 distance="200000"
 # Minimum number of reads on heterozygous site to consider a sample valid
-min_reads="5"
+min_reads="4"
 # Minimum number of valid samples we will run a qtl test on
-min_samples_per_time_step="7"
+min_samples_per_time_step="6"
 # Minimum fraction of valid samples with less popular version of regulatory variant (homozygous reg variant vs heterozygous reg variant)
 min_fraction_in_test_group=".2"
 # Statistical test to use in evaluating aseQTL

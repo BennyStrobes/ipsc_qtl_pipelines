@@ -88,9 +88,11 @@ def extract_regulatory_variant_information(het_prob_genotype_file, ordered_cell_
         data = line.split()
         if line.startswith('#CHROM'):  # header with sample ids
             sample_indices = []  # ordered list of indices corresponding to cell lines we have rna-seq for at this time step
-            for i,val in enumerate(data):
-                if val in ordered_cell_lines:
-                    sample_indices.append(i)
+            # Make sure genotype and ae data is in same order
+            for i,cell_line in enumerate(ordered_cell_lines):
+                for index, val in enumerate(data):
+                    if val == cell_line:
+                        sample_indices.append(index)
             if np.array_equal(np.asarray(data)[sample_indices], np.asarray(ordered_cell_lines)) == False: # Simple error checking
                 print('FATAL ERROR: GENOTYPE Cell lines doesnt match ordered_cell_lines')
                 pdb.set_trace()
@@ -129,7 +131,7 @@ def driver(het_prob_genotype_file, allelic_counts_file, output_file_prefix, min_
     # Run independent_time_step_qtl.py
     #####################################
     # Method to run aseqtl analysis on one chromosome
-    run_independent_time_step_qtl(output_file_prefix, allelic_imbalence_mat, total_counts_mat, het_site_positions, het_site_ids, reg_prob_matrix, reg_site_positions, reg_site_ids, min_reads, min_samples_per_time_step, min_fraction_in_test_group, distance, statistical_test, normalization_method)
+    run_ase_qtl(output_file_prefix, allelic_imbalence_mat, total_counts_mat, het_site_positions, het_site_ids, reg_prob_matrix, reg_site_positions, reg_site_ids, min_reads, min_samples_per_time_step, min_fraction_in_test_group, distance, statistical_test, normalization_method, chrom_num)
 
 
 
