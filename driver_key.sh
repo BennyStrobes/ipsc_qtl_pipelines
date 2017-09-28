@@ -53,10 +53,12 @@ independent_time_step_qtl_dir=$ipsc_qtl_root"independent_time_step_qtl/"
 ############ Run independent time step qtl analysis
 ##MODEL PARAMETERS
 # Cis eqtl distance (EAGLE used 200 KB)
-distance="200000"
+distance="20000"
 # Minimum number of reads on heterozygous site to consider a sample valid
-min_reads="4"
-# Minimum number of valid samples we will run a qtl test on
+min_reads="3"
+# Minimum fraction of heterozygous samples that show biallelic expression
+min_fraction_biallelic=".8"
+# Minimum number of heterozygous samples for us to run the test
 min_samples_per_time_step="6"
 # Minimum fraction of valid samples with less popular version of regulatory variant (homozygous reg variant vs heterozygous reg variant)
 min_fraction_in_test_group=".2"
@@ -68,11 +70,13 @@ statistical_test="wilcoxon"
 normalization_method="na"
 
 ## Output file prefix
-output_file_prefix=$independent_time_step_qtl_dir"independent_time_step_qtl_distance_"$distance"_min_reads_"$min_reads"_min_samples_"$min_samples_per_time_step"_min_fraction_in_test_group_"$min_fraction_in_test_group"_"$statistical_test"_normalization_method_"$normalization_method"_"
-
-sh independent_time_step_qtl_driver.sh $het_prob_genotype_file $allelic_counts_file $output_file_prefix $min_reads $min_samples_per_time_step $min_fraction_in_test_group $distance $statistical_test $normalization_method
-
-
+output_file_prefix=$independent_time_step_qtl_dir"independent_time_step_qtl_distance_"$distance"_min_reads_"$min_reads"_min_fraction_biallelic_"$min_fraction_biallelic"_min_samples_"$min_samples_per_time_step"_min_fraction_in_test_group_"$min_fraction_in_test_group"_"$statistical_test"_normalization_method_"$normalization_method"_"
+sbatch independent_time_step_qtl_driver.sh $het_prob_genotype_file $allelic_counts_file $output_file_prefix $min_reads $min_samples_per_time_step $min_fraction_in_test_group $distance $statistical_test $normalization_method $min_fraction_biallelic
+statistical_test="linear_regression"
+normalization_method="standardize"
+sbatch independent_time_step_qtl_driver.sh $het_prob_genotype_file $allelic_counts_file $output_file_prefix $min_reads $min_samples_per_time_step $min_fraction_in_test_group $distance $statistical_test $normalization_method $min_fraction_biallelic
+normalization_method="quantile_normalize"
+sbatch independent_time_step_qtl_driver.sh $het_prob_genotype_file $allelic_counts_file $output_file_prefix $min_reads $min_samples_per_time_step $min_fraction_in_test_group $distance $statistical_test $normalization_method $min_fraction_biallelic
 
 
 

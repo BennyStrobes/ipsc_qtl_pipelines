@@ -117,7 +117,7 @@ def extract_regulatory_variant_information(het_prob_genotype_file, ordered_cell_
     return reg_prob_matrix, reg_site_positions, reg_site_ids
 
 # Main driver function
-def driver(het_prob_genotype_file, allelic_counts_file, output_file_prefix, min_reads, min_samples_per_time_step, min_fraction_in_test_group, distance, statistical_test, normalization_method, chrom_num, time_step):
+def driver(het_prob_genotype_file, allelic_counts_file, output_file_prefix, min_reads, min_samples_per_time_step, min_fraction_in_test_group, distance, statistical_test, normalization_method, chrom_num, time_step, min_fraction_biallelic):
     #####################################
     # Preprocess the data
     #####################################
@@ -131,7 +131,7 @@ def driver(het_prob_genotype_file, allelic_counts_file, output_file_prefix, min_
     # Run independent_time_step_qtl.py
     #####################################
     # Method to run aseqtl analysis on one chromosome
-    run_ase_qtl(output_file_prefix, allelic_imbalence_mat, total_counts_mat, het_site_positions, het_site_ids, reg_prob_matrix, reg_site_positions, reg_site_ids, min_reads, min_samples_per_time_step, min_fraction_in_test_group, distance, statistical_test, normalization_method, chrom_num)
+    run_ase_qtl(output_file_prefix, allelic_imbalence_mat, total_counts_mat, het_site_positions, het_site_ids, reg_prob_matrix, reg_site_positions, reg_site_ids, min_reads, min_samples_per_time_step, min_fraction_in_test_group, distance, statistical_test, normalization_method, chrom_num, min_fraction_biallelic)
 
 
 
@@ -153,6 +153,8 @@ statistical_test = sys.argv[8]  # Statistical test to use in evaluating aseQTL (
 normalization_method = sys.argv[9]  # Normalization method (only applicable if statistical_test="linear_regression", otherwise will be ignored). Options available are "standardize" and "quantile_normalize"
 chrom_num = int(sys.argv[10])
 time_step = int(sys.argv[11])
+min_fraction_biallelic = float(sys.argv[12])  # Minimum fraction of heterozygous samples that show biallelic expression
 
 # Main driver function
-driver(het_prob_genotype_file, allelic_counts_file, output_file_prefix, min_reads, min_samples_per_time_step, min_fraction_in_test_group, distance, statistical_test, normalization_method, chrom_num, time_step)
+driver(het_prob_genotype_file, allelic_counts_file, output_file_prefix, min_reads, min_samples_per_time_step, min_fraction_in_test_group, distance, statistical_test, normalization_method, chrom_num, time_step, min_fraction_biallelic)
+

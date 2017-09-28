@@ -86,7 +86,8 @@ def run_statistical_test(reg_site_vector, allelic_imbalence_vector_filtered_samp
 ## 13. statistical_test: Statistical test to use in evaluating aseQTL (options are "wilcoxon" and "linear_regression")
 ## 14. normalization_method: Normalization method (only applicable if statistical_test="linear_regression", otherwise will be ignored). Options available are "standardize" and "quantile_normalize"
 ## 15. chrom_num: integer corresponding to which chromosome the analysis was done on 
-def run_ase_qtl(output_file_prefix, allelic_imbalence_mat, total_counts_mat, het_site_positions, het_site_ids, reg_prob_mat, reg_site_positions, reg_site_ids, min_reads, min_samples_per_time_step, min_fraction_in_test_group, distance, statistical_test, normalization_method, chrom_num):
+## 16. min_fraction_biallelic: Minimum fraction of heterozygous samples that show biallelic expression
+def run_ase_qtl(output_file_prefix, allelic_imbalence_mat, total_counts_mat, het_site_positions, het_site_ids, reg_prob_mat, reg_site_positions, reg_site_ids, min_reads, min_samples_per_time_step, min_fraction_in_test_group, distance, statistical_test, normalization_method, chrom_num, min_fraction_biallelic):
     # Get arrays and matrices into correct format
     reg_site_positions = np.asarray(reg_site_positions)
     allelic_imbalence_mat = np.asmatrix(allelic_imbalence_mat)
@@ -111,11 +112,20 @@ def run_ase_qtl(output_file_prefix, allelic_imbalence_mat, total_counts_mat, het
         total_counts_vector = np.squeeze(np.asarray(total_counts_mat[het_site_index,:]))
         het_site_position = het_site_positions[het_site_index]
         het_site_id = het_site_ids[het_site_index]
-        # Extract indices of samples that have at least min_reads reads overlapping site
-        valid_samples = np.where(total_counts_vector >= min_reads)[0]
+
+        ##FILTERS
+        # Get number of samples that have a heterozygous site
+        num_samples_with_het_site = np.sum(np.isnan(total_counts_vector)==False)
         # Make sure there are at least min_samples_per_time_step valid_samples
-        if len(valid_samples) < min_samples_per_time_step:  # If not, skip this site
+        if num_samples_with_het_site < min_samples_per_time_step:
             continue
+        # Extract indices of samples that have at least min_reads reads overlapping site and do not do not show allelic imbalence
+        valid_samples = (total_counts_vector >= min_reads)*(allelic_imbalence_vector < .49)
+        num_valid_samples = np.sum(valid_samples)
+        # Make sure the fraction of biallelic samples (out of the number of heterzygous samples) is >= min_fraction_biallelic
+        if num_valid_samples/float(num_samples_with_het_site) < min_fraction_biallelic:
+            continue
+
         allelic_imbalence_vector_filtered_samples = allelic_imbalence_vector[valid_samples]
         # Find indices of reg_site_positions that are within distance of het_site_position
         reg_site_indices = find_reg_site_positions_within_distance(het_site_position, reg_site_positions, distance)
