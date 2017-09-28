@@ -15,6 +15,8 @@ As for important output files from this pipeline (using dir_names defined in 'dr
 
 	1. $independent_time_step_qtl_dir"independent_time_step_qtl_distance_"$distance"_min_reads_"$min_reads"_min_fraction_biallelic_"$min_fraction_biallelic"_min_samples_"$min_samples_per_time_step"_min_fraction_in_test_group_"$min_fraction_in_test_group"_"$statistical_test"_normalization_method_"$normalization_method"_"
 
+The variables in the output file refer to parameters in the model. See `driver_key.sh` for a description of all of the parameters.
+
 
 Let me know if something isn't clear.
 
