@@ -69,13 +69,17 @@ statistical_test="wilcoxon"
 # Options available are "standardize" and "quantile_normalize"
 normalization_method="na"
 
-## Output file prefix
+## Run wilcoxon test
 output_file_prefix=$independent_time_step_qtl_dir"independent_time_step_qtl_distance_"$distance"_min_reads_"$min_reads"_min_fraction_biallelic_"$min_fraction_biallelic"_min_samples_"$min_samples_per_time_step"_min_fraction_in_test_group_"$min_fraction_in_test_group"_"$statistical_test"_normalization_method_"$normalization_method"_"
 sbatch independent_time_step_qtl_driver.sh $het_prob_genotype_file $allelic_counts_file $output_file_prefix $min_reads $min_samples_per_time_step $min_fraction_in_test_group $distance $statistical_test $normalization_method $min_fraction_biallelic
+# Run linear regression test (standardizing the response variable)
 statistical_test="linear_regression"
 normalization_method="standardize"
+output_file_prefix=$independent_time_step_qtl_dir"independent_time_step_qtl_distance_"$distance"_min_reads_"$min_reads"_min_fraction_biallelic_"$min_fraction_biallelic"_min_samples_"$min_samples_per_time_step"_min_fraction_in_test_group_"$min_fraction_in_test_group"_"$statistical_test"_normalization_method_"$normalization_method"_"
 sbatch independent_time_step_qtl_driver.sh $het_prob_genotype_file $allelic_counts_file $output_file_prefix $min_reads $min_samples_per_time_step $min_fraction_in_test_group $distance $statistical_test $normalization_method $min_fraction_biallelic
+# Run linear regression test (quantile normalizing the response variable)
 normalization_method="quantile_normalize"
+output_file_prefix=$independent_time_step_qtl_dir"independent_time_step_qtl_distance_"$distance"_min_reads_"$min_reads"_min_fraction_biallelic_"$min_fraction_biallelic"_min_samples_"$min_samples_per_time_step"_min_fraction_in_test_group_"$min_fraction_in_test_group"_"$statistical_test"_normalization_method_"$normalization_method"_"
 sbatch independent_time_step_qtl_driver.sh $het_prob_genotype_file $allelic_counts_file $output_file_prefix $min_reads $min_samples_per_time_step $min_fraction_in_test_group $distance $statistical_test $normalization_method $min_fraction_biallelic
 
 
