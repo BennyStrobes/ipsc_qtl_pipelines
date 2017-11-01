@@ -6,15 +6,14 @@ import pdb
 
 
 
-
 # Run bonferonni correction treating every heterozygous site as a gene
-def run_bonferonni_correction(testing_prefix, concatenated_output_file, bonferonni_corrected_output_file):
+def run_bonferonni_correction(testing_prefix, concatenated_output_file, bonferonni_corrected_output_file, testing_suffix):
     # Initialize dictionary that contains mapping from heterozygous site to a tuple that contains (pvalue,full_line, number of regulatory snps)
     sites = {}
     t = open(concatenated_output_file, 'w')
     for chrom_num in range(1,23):
         # Open up qtl output file for this chromosome
-        chromosome_input_file = testing_prefix + 'chrom_' + str(chrom_num) + '_aseqtl_results.txt'
+        chromosome_input_file = testing_prefix + 'chrom_' + str(chrom_num) + '_' + testing_suffix
         f = open(chromosome_input_file)
         head_count = 0 # used to find header
         # Loop through file
@@ -33,7 +32,7 @@ def run_bonferonni_correction(testing_prefix, concatenated_output_file, bonferon
             # Extract info from line of qtl file
             het_site_id = data[1]
             reg_site_id = data[3]
-            pvalue = float(data[6])
+            pvalue = float(data[7])
 
             # If we've never seen this heterozygous site before
             if het_site_id not in sites:
@@ -42,11 +41,12 @@ def run_bonferonni_correction(testing_prefix, concatenated_output_file, bonferon
                 # Check to see if the current pvalue is smaller than the previous best
                 old_tuple = sites[het_site_id]
                 old_pvalue = old_tuple[0]
+                old_line = old_tuple[1]
                 prev_count = old_tuple[2]
                 if pvalue < old_pvalue: # new pvalue is better
                     sites[het_site_id] = (pvalue, line, prev_count + 1)
                 else:  # old pvalue was better
-                    sites[het_site_id] = (pvalue, line, prev_count + 1)          
+                    sites[het_site_id] = (old_pvalue, old_line, prev_count + 1)          
         # Now that we have included this chromosome in the concatenate file, we can delete the original
         f.close()
         os.system('rm ' + chromosome_input_file)
@@ -64,7 +64,7 @@ def run_bonferonni_correction(testing_prefix, concatenated_output_file, bonferon
     sorted_bf_tuples = sorted(bf_tuples, key=lambda tup: tup[0])
     # print to output the best reg site per het. site
     t = open(bonferonni_corrected_output_file, 'w')
-    t.write('chom_num\thet_site_id\thet_site_position\tregulatory_site_id\tregulatory_site_position\ttest_statistic\tpvalue\tBF_pvalue\n')
+    t.write('chom_num\thet_site_id\thet_site_position\tregulatory_site_id\tregulatory_site_position\ttest_statistic\tregulatory_allele_frequency\tpvalue\tBF_pvalue\n')
     for tupler in sorted_bf_tuples:
         t.write(tupler[1] + '\n')
     t.close()
@@ -97,7 +97,7 @@ def run_benjamini_hochberg_correction(bonferonni_corrected_output_file, bh_corre
             # Print same header
             t.write(line + '\n')
             continue
-        bf_corrected_pvalue = float(data[7])
+        bf_corrected_pvalue = float(data[8])
 
         if bf_corrected_pvalue <= bf_count*alpha/number_of_tests:  # This test is significant
             t.write(line + '\n')
@@ -120,16 +120,16 @@ def run_benjamini_hochberg_correction(bonferonni_corrected_output_file, bh_corre
 # There will be 22 files of form $testing_prefix + $chrom_num + '_aseqtl_results.txt'. They correspond to 22 seperate qtl runs for each chromosome
 # This script merges those files. Runs bonferonni correction at the gene level. And then Benjamini-Hochberge at the genome level
 testing_prefix = sys.argv[1]
+testing_suffix = sys.argv[2]
 
+alpha=.05 # Significance threshold for bh correction
 
-alpha=.1 # Significance threshold for bh correction
-
-concatenated_output_file = testing_prefix + 'aseqtl_results.txt'
+concatenated_output_file = testing_prefix + testing_suffix
 bonferonni_corrected_output_file = testing_prefix + 'bonferonni_correction.txt'
-bh_corrected_output_file = testing_prefix + 'bh_correction_' + str(alpha)  + '.txt'
+bh_corrected_output_file = testing_prefix + 'bh_correction_' + str(alpha) + '.txt'
 
 # Run bonferonni correction treating every heterozygous site as a gene
-run_bonferonni_correction(testing_prefix, concatenated_output_file, bonferonni_corrected_output_file)
+run_bonferonni_correction(testing_prefix, concatenated_output_file, bonferonni_corrected_output_file, testing_suffix)
 
 # Run benjamin-hochberg on bf corrected data
 run_benjamini_hochberg_correction(bonferonni_corrected_output_file, bh_corrected_output_file, alpha)
