@@ -14,7 +14,7 @@ full_heart_eqtl_data="${10}"
 
 output_file_prefix=$output_dir"eqtl_prepare_eqtl_distance_"$eqtl_distance"_maf_cutoff_"$maf_cutoff
 
-
+if false; then
 # Perorm qtl analysis in each chromosome seperately (okay because doing cis eqtls)
 for chrom_num in $(seq 1 22); do
     output_root=$output_file_prefix"_time_step_"$time_step"_chrom_"$chrom_num"_"
@@ -47,7 +47,7 @@ python independent_time_step_multiple_testing_correction.py $output_file_prefix"
 
 # Visualize distribution of pvalues from eqtl analyses at each of the time steps independently
 Rscript visualize_eqtls.R $output_file_prefix"_time_step_"$time_step"_bonferonni_correction.txt" $output_file_prefix"_time_step_"$time_step"_eqtl_results.txt" $visualize_independent_time_step_eqtl_dir"eqtl_distance_"$eqtl_distance"_maf_cutoff_"$maf_cutoff"_time_step_" $time_step
-
+fi
 
 # We are given significant eqtls from Nick Banovich's ipsc eqtl analysis on about 60 subjects.
 # We extract both:
@@ -56,6 +56,8 @@ Rscript visualize_eqtls.R $output_file_prefix"_time_step_"$time_step"_bonferonni
 version="ipsc"
 python get_snp_gene_pairs_from_other_data_and_match_for_background.py $output_file_prefix"_time_step_"$time_step"_eqtl_results.txt" $visualize_independent_time_step_eqtl_dir"ipsc_banovich_comparison_distance_"$eqtl_distance"_maf_cutoff_"$maf_cutoff"_time_step_"$time_step"_" $full_ipsc_qtl_data $eqtl_distance $version
 
+if false; then
 # Do same thing as above, except for GTEx v7 heart left ventricle eqtls
 version="heart"
 python get_snp_gene_pairs_from_other_data_and_match_for_background.py $output_file_prefix"_time_step_"$time_step"_eqtl_results.txt" $visualize_independent_time_step_eqtl_dir"gtex_v7_heart_left_ventricle_comparison_distance_"$eqtl_distance"_maf_cutoff_"$maf_cutoff"_time_step_"$time_step"_" $full_heart_eqtl_data $eqtl_distance $version
+fi

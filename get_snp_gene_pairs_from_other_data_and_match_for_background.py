@@ -81,8 +81,8 @@ def extract_reference_eqtls(reference_eqtl_file,version):
         # Extract gene id and variant id in different ways depending on where the data comes from
         if version == 'ipsc':
             # Extract relevent fields from line
-            gene_id = data[1]
-            rsid = data[2]
+            gene_id = data[0].split('.')[0]
+            rsid = data[1].split('.')[0]
         elif version == 'heart':
             gene_id = data[0].split('.')[0]
             rsid = data[18]
