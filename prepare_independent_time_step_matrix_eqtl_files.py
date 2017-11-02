@@ -3,6 +3,8 @@ import os
 import sys
 import pdb
 import gzip
+import scipy.stats as ss
+from scipy import stats
 
 # Create dictionary of all genes we are going to be testing (ie those that passed our filters)
 def get_measured_genes(expression_mat):
@@ -65,7 +67,7 @@ def get_mapping_from_gene_to_tss(gencode_gene_annotation_file, chrom_num, measur
 
 
 # Prepare files for matrix eqtl related to gene expression:
-def prepare_gene_expression_files(time_step, chrom_num, quantile_normalized_expression, gencode_gene_annotation_file, expression_matrix_file, gene_location_file):
+def prepare_gene_expression_files(time_step, chrom_num, quantile_normalized_expression, gencode_gene_annotation_file, expression_matrix_file, gene_location_file, normalization_method):
     # Create dictionary of all genes we are going to be testing (ie those that passed our filters)
     measured_genes = get_measured_genes(quantile_normalized_expression)
     # Create dictionary mapping all genes found in measured_genes, and are located on chromosome $chrom_num, to their tss
@@ -102,8 +104,24 @@ def prepare_gene_expression_files(time_step, chrom_num, quantile_normalized_expr
             continue
         # Add line to gene location file
         t_loc.write(gene_id + '\tchr' + chrom_num + '\t' + str(gene_to_tss[gene_id][0]) + '\t' + str(gene_to_tss[gene_id][0]) + '\n')
+
+        # normalize the expression data in various ways..:
+        if normalization_method == 'none': # Don't do anything to the expression data
+            expr_vec = np.asarray(data)[indices]
+        elif normalization_method == 'standardize':  # standardize the expression data
+            expr_vec_temp = np.asarray(data)[indices]
+            expr_vec_float = expr_vec_temp.astype(float)  # convert to float
+            expr_vec_standardized_float = (expr_vec_float - np.mean(expr_vec_float))/np.std(expr_vec_float)  # standardize
+            expr_vec = expr_vec_standardized_float.astype(str)  # convert back to strings
+        elif normalization_method == 'gaussian_projection':
+            expr_vec_temp = np.asarray(data)[indices]
+            expr_vec_float = expr_vec_temp.astype(float)  # convert to float
+            expr_vec_ranked = ss.rankdata(expr_vec_float)/(len(expr_vec_float) + 1)
+            expr_vec = stats.norm.ppf(expr_vec_ranked)
+            expr_vec = expr_vec.astype(str)
+            
         # Add line to gene expression matrix file
-        t_expr.write(gene_id + '\t' + '\t'.join(np.asarray(data)[indices]) + '\n')
+        t_expr.write(gene_id + '\t' + '\t'.join(expr_vec) + '\n')
     t_expr.close()
     t_loc.close()
     return cell_lines
@@ -263,11 +281,12 @@ quantile_normalized_expression = sys.argv[4]  # Quantile normalized expression d
 gencode_gene_annotation_file = sys.argv[5]  # hg19 gencodge gene annotation
 output_root = sys.argv[6]  # Prefix of output files
 maf_cutoff = float(sys.argv[7])  # Only use variants with maf >= maf_cutoff
+normalization_method = sys.argv[8]  # String flag on how we want to normalize the expression data
 
 # Prepare files for matrix eqtl related to gene expression:
 expression_matrix_file = output_root + 'expression.txt'
 gene_location_file = output_root + 'gene_location.txt'
-ordered_cell_lines = prepare_gene_expression_files(time_step, chrom_num, quantile_normalized_expression, gencode_gene_annotation_file, expression_matrix_file, gene_location_file)
+ordered_cell_lines = prepare_gene_expression_files(time_step, chrom_num, quantile_normalized_expression, gencode_gene_annotation_file, expression_matrix_file, gene_location_file, normalization_method)
 
 # Extract list of length number of time steps where each element is a dictionary that contains the cell lines observed for that time step
 # When calling maf cutoff, we require it to pass the maf in each observed time step

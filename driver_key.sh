@@ -144,12 +144,18 @@ fi
 distance="100000"
 # Minimum fraction of valid samples with less popular version of regulatory variant (homozygous reg variant vs heterozygous reg variant)
 maf_cutoff=".1"
+# The way in which we normalize the data
+# Currently implemented for:
+#####1. 'none'
+#####2. 'standardize'
+#####3. 'gaussian_projection'
+normalization_method="standardize"
 
 if false; then
 for time_step in $(seq 0 15); do
-    sh independent_time_step_eqtl_driver.sh $dosage_genotype_file $corrected_quantile_normalized_expression $gencode_gene_annotation_file $independent_time_step_eqtl_dir $distance $maf_cutoff $time_step $visualize_independent_time_step_eqtl_dir $full_ipsc_qtl_data $full_heart_eqtl_data
+    sbatch independent_time_step_eqtl_driver.sh $dosage_genotype_file $corrected_quantile_normalized_expression $gencode_gene_annotation_file $independent_time_step_eqtl_dir $distance $maf_cutoff $time_step $visualize_independent_time_step_eqtl_dir $full_ipsc_qtl_data $full_heart_eqtl_data $normalization_method
 done
+
+
+Rscript visualize_eqtls_across_time_steps.R $visualize_independent_time_step_eqtl_dir $distance $maf_cutoff $normalization_method $independent_time_step_eqtl_dir
 fi
-
-Rscript visualize_eqtls_across_time_steps.R $visualize_independent_time_step_eqtl_dir $distance $maf_cutoff
-

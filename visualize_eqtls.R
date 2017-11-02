@@ -56,7 +56,7 @@ nominal_pvalues_histogram <- function(pvalues, output_file,time_step) {
     df <- data.frame(pvalues = pvalues)
     # make plots
     p <- ggplot(df, aes(x = pvalues)) +
-        geom_histogram(aes(y = ..count..), colour = barlines, fill = barfill,binwidth = 0.05, boundary = 0) +
+        geom_histogram(aes(y = ..count..), colour = barlines, fill = barfill,binwidth = 0.01, boundary = 0) +
         scale_x_continuous(name = "pvalues") +
         scale_y_continuous(name = "counts") + 
         ggtitle(title)
@@ -86,12 +86,12 @@ nominal_pvalues_histogram(all_eqtl_nominal_pvalues$pvalue,output_file,time_step)
 # Visualize distribution of best nominal pvalues per gene
 #############################################################
 output_file <- paste0(output_dir,time_step,"_best_nominal_pvalue_per_gene_hist.png")
-best_nominal_pvalue_per_gene_histogram(eqtl_data$pvalue, output_file,time_step)
+#best_nominal_pvalue_per_gene_histogram(eqtl_data$pvalue, output_file,time_step)
 
 ###########################################################
 # Visualize distribution of best corrected pvalue per gene
 ############################################################
 output_file <- paste0(output_dir,time_step,"_best_corrected_pvalue_per_gene_hist.png")
-best_corrected_pvalue_per_gene_histogram(eqtl_data$BF_pvalue, output_file,time_step)
+#best_corrected_pvalue_per_gene_histogram(eqtl_data$BF_pvalue, output_file,time_step)
 
 
