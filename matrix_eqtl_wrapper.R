@@ -25,8 +25,14 @@ expression_file_name = args[3];
 gene_location_file_name = args[4];
 
 # Covariates file name
+covariate_input_file = args[7];
+data_prep_version = args[8];
 # Set to character() for no covariates
-covariates_file_name = character();
+if (data_prep_version == "time_step_aggregrated_all_regressed") {
+    covariates_file_name = character();
+} else {
+    covariates_file_name = covariate_input_file;
+}
 
 # Output file name
 output_file_name_cis = args[6];

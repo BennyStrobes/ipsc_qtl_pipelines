@@ -5,6 +5,8 @@ import pdb
 import gzip
 import scipy.stats as ss
 from scipy import stats
+from sklearn import linear_model
+
 
 # Create dictionary of all genes we are going to be testing (ie those that passed our filters)
 def get_measured_genes(expression_mat):
@@ -67,9 +69,9 @@ def get_mapping_from_gene_to_tss(gencode_gene_annotation_file, chrom_num, measur
 
 
 # Prepare files for matrix eqtl related to gene expression:
-def prepare_gene_expression_files(time_step, chrom_num, quantile_normalized_expression, gencode_gene_annotation_file, expression_matrix_file, gene_location_file, normalization_method):
+def prepare_gene_expression_files(time_step, chrom_num, gene_expression_input_file, gencode_gene_annotation_file, expression_matrix_file, gene_location_file, normalization_method):
     # Create dictionary of all genes we are going to be testing (ie those that passed our filters)
-    measured_genes = get_measured_genes(quantile_normalized_expression)
+    measured_genes = get_measured_genes(gene_expression_input_file)
     # Create dictionary mapping all genes found in measured_genes, and are located on chromosome $chrom_num, to their tss
     gene_to_tss = get_mapping_from_gene_to_tss(gencode_gene_annotation_file, chrom_num, measured_genes)
 
@@ -81,7 +83,7 @@ def prepare_gene_expression_files(time_step, chrom_num, quantile_normalized_expr
 
     # Loop through input quantile normalized expression file
     head_count = 0  # used to identify header of input file
-    f = open(quantile_normalized_expression)
+    f = open(gene_expression_input_file)
     for line in f:
         line = line.rstrip()
         data = line.split()
@@ -271,33 +273,162 @@ def extract_list_of_cell_lines_in_all_time_steps(quantile_normalized_expression)
         cell_lines_all_time_steps.append(temp_dicti)
     return cell_lines_all_time_steps
 
+# Prepare files for matrix eqtl related to covariates when expression data is prepared independently at each time step
+def prepare_covariate_files(ordered_cell_lines, pca_loading_file, num_pcs, covariate_matrix_file):
+    t = open(covariate_matrix_file, 'w')  # open output file handle
+    data = np.transpose(np.loadtxt(pca_loading_file, dtype=str))  # load in data
+    # Make sure sample names are in correct order
+    sample_names = data[0,1:]
+    t.write('id')
+    for i,ele in enumerate(sample_names):
+        cell_line_id = ele.split('_')[0]
+        t.write('\t' + cell_line_id)
+        if cell_line_id != ordered_cell_lines[i]:
+            print('FATAL ERROR IN COVARIATE PREP')
+            pdb.set_trace()
+    t.write('\n')
+    # write Latent factors to covariate file
+    for row_num in range(1, (num_pcs+1)):
+        t.write('\t'.join(data[row_num,:]) + '\n')
+    t.close()
+
+# Prepare covariate (PCs) for when expression data is prepared in aggegrate
+# SVA is used to estimate latent factors
+def prepare_covariate_files_aggregrate(ordered_cell_lines, sva_loading_file, num_factors, covariate_matrix_file, time_step):
+    t = open(covariate_matrix_file, 'w')  # open output file handle
+    t.write('id')  # Write first element of header of output file
+
+    aa = np.transpose(np.loadtxt(sva_loading_file,dtype=str))  # Load in SVA data
+    
+    # Learn indices of samples that correspond to samples at the current time step 
+    # Also write header
+    indices = [] 
+    sample_ids = aa[0,1:]
+    counter = 0
+    for i, val in enumerate(sample_ids):
+        i_cell_line = val.split('_')[0]
+        i_time_step = val.split('_')[1]
+        if i_time_step != time_step:
+            continue
+        if ordered_cell_lines[counter] == i_cell_line:
+            indices.append(i)
+            counter = counter + 1
+            t.write('\t' + i_cell_line)
+    # Simple check that what we did was correct
+    if len(indices) != len(ordered_cell_lines):
+        print('Fatal error')
+        pdb.set_trace()
+    t.write('\n')
+
+    # Create 1 line for each additional latent factor
+    for row_num in range(1, (num_factors +1)):
+        row_name = aa[row_num, 0]
+        data = np.asarray(aa[row_num,1:])[indices]  # limit to samples from this time step
+        t.write(row_name + '\t' + '\t'.join(data) + '\n')
+    t.close()
+
+# Regress out the effects of latent variables, and save the corrected data to $gene_expression_input_file
+def clean_expression_data(gene_expression_input_file, quantile_normalized_expression, num_pcs, sva_loading_file):
+    #  Load in data
+    expr_data = np.loadtxt(quantile_normalized_expression, dtype=str)
+    sva_data = np.transpose(np.loadtxt(sva_loading_file, dtype=str))
+    
+    #  Parse loaded data
+    expr_sample_ids = expr_data[0, 1:]
+    gene_ids = expr_data[1:, 0]
+    sva_sample_ids = sva_data[0, 1:]
+    sva_factor_ids = sva_data[1:, 0]
+    expr = expr_data[1:, 1:].astype(float)
+    sva = np.transpose(sva_data[1:, 1:].astype(float))
+
+    # Simple check to make sure assumptions are met
+    if np.array_equal(expr_sample_ids, sva_sample_ids) == False:
+        print('Fatal Error')
+        pdb.set_trace()
+
+    # Initialize corrected data matrix
+    corrected_data = np.zeros(expr.shape)
+
+    # Initialize output file
+    t = open(gene_expression_input_file, 'w')
+    # Write header to output file
+    header = '\t'.join(expr_data[0, :])
+    t.write(header + '\n')
+
+    # Get number of genes
+    num_genes = len(gene_ids)
+    # Loop through all genes
+    for gene_index in range(num_genes):
+        gene_expression = expr[gene_index, :]  # Extract expression values for this gene
+        # Fit linear model of latent factors onto the gene expression
+        model = linear_model.LinearRegression(fit_intercept=True)
+        modelfit = model.fit(sva, gene_expression)
+        beta = modelfit.coef_
+        # Regress out this model
+        for i, val in enumerate(beta):
+            gene_expression = gene_expression - sva[:, i]*val
+        # Write corrected expression for this gene to the output file
+        gene_name = gene_ids[gene_index]
+        t.write(gene_name + '\t' + '\t'.join(gene_expression.astype(str)) + '\n')
+    t.close()
+
+
 ########################
 # Command line arguments
 ########################
-time_step = sys.argv[1]  # Time step (recall we are running each time step seperately)
-chrom_num = sys.argv[2]  # Run each chromosome seperately (ok cause doing cis-eqtls)
+time_step = sys.argv[1]  # Time step (we are running each time step seperately)
+chrom_num = sys.argv[2]  # Run each chromosome seperately (OK cause doing cis-eqtls)
 dosage_genotype_file = sys.argv[3]  # File containing dosage-based genotype information
-quantile_normalized_expression = sys.argv[4]  # Quantile normalized expression data
+quantile_normalized_expression = sys.argv[4]  # Quantile normalized expression data (uncorrected data)
 gencode_gene_annotation_file = sys.argv[5]  # hg19 gencodge gene annotation
 output_root = sys.argv[6]  # Prefix of output files
 maf_cutoff = float(sys.argv[7])  # Only use variants with maf >= maf_cutoff
 normalization_method = sys.argv[8]  # String flag on how we want to normalize the expression data
+data_prep_version = sys.argv[9]  # String flag to determine whether we use $quantile_normalized_expression or $quantile_normalized_time_step_independent_expression
+num_pcs = (sys.argv[10])  # the number of PCs to use
+quantile_normalized_time_step_independent_expression = sys.argv[11]  # file of quantile normalized expression data (done at each time step independently)
+pca_loading_file = sys.argv[12]  # File with PCA loadings for samples from this time step (only applies if data_prep_version == 'time_step_independent')
+sva_loading_file = sys.argv[13]  # File with SVA loadings for samples across all time steps (only applies if data_prep_version == 'time_step_aggregrated' or 'time_step_aggregrated_all_regressed')
+
+# Load the correct expression data (depending on data_prep_version flag)
+if data_prep_version == 'time_step_aggregrated':
+    gene_expression_input_file = quantile_normalized_expression
+elif data_prep_version == 'time_step_independent':
+    gene_expression_input_file = quantile_normalized_time_step_independent_expression
+elif data_prep_version == 'time_step_aggregrated_all_regressed':
+    gene_expression_input_file = output_root + 'temp_expression.txt'
+    # Regress out the effects of latent variables, and save the corrected data to $gene_expression_input_file
+    clean_expression_data(gene_expression_input_file, quantile_normalized_expression, num_pcs, sva_loading_file)
+else:
+    print('ERROR: Cannot prepare expression files with current data_prep_version_input')
+    pdb.set_trace()
+
 
 # Prepare files for matrix eqtl related to gene expression:
 expression_matrix_file = output_root + 'expression.txt'
 gene_location_file = output_root + 'gene_location.txt'
-ordered_cell_lines = prepare_gene_expression_files(time_step, chrom_num, quantile_normalized_expression, gencode_gene_annotation_file, expression_matrix_file, gene_location_file, normalization_method)
+ordered_cell_lines = prepare_gene_expression_files(time_step, chrom_num, gene_expression_input_file, gencode_gene_annotation_file, expression_matrix_file, gene_location_file, normalization_method)
 
 # Extract list of length number of time steps where each element is a dictionary that contains the cell lines observed for that time step
 # When calling maf cutoff, we require it to pass the maf in each observed time step
-cell_lines_all_time_steps = extract_list_of_cell_lines_in_all_time_steps(quantile_normalized_expression)
+cell_lines_all_time_steps = extract_list_of_cell_lines_in_all_time_steps(gene_expression_input_file)
 
 # Prepare files for matrix eqtl related to genotype
 genotype_matrix_file = output_root + 'genotype.txt'
 variant_location_file = output_root + 'variant_location.txt'
 prepare_genotype_files(chrom_num, ordered_cell_lines, dosage_genotype_file, genotype_matrix_file, variant_location_file, maf_cutoff, cell_lines_all_time_steps)
 
-# Prepare files for matrix eqtl related to covariates (not used because we are using corrected data)
-#covariate_matrix_file = output_root + 'covariate.txt'
-#prepare_covariate_files(ordered_cell_lines, sva_loading_file, covariate_matrix_file, time_step, num_covariates)
 
+# Prepare files for matrix eqtl related to covariates (not used because we are using corrected data)
+covariate_matrix_file = output_root + 'covariate.txt'  # output file
+
+# Prepare covariates seperately depending on whether using time_step_independent vs time_step_aggregrate
+if data_prep_version == 'time_step_independent':
+    prepare_covariate_files(ordered_cell_lines, pca_loading_file, int(num_pcs), covariate_matrix_file)
+elif data_prep_version == 'time_step_aggregrated':
+    prepare_covariate_files_aggregrate(ordered_cell_lines, sva_loading_file, int(num_pcs), covariate_matrix_file, time_step)
+elif data_prep_version == 'time_step_aggregrated_all_regressed':
+    t = open(covariate_matrix_file, 'w')
+    t.write('placeholder')
+    t.close()
+    os.system('rm ' + gene_expression_input_file)

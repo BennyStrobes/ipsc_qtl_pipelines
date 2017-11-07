@@ -23,13 +23,23 @@ allelic_counts_file=$preprocess_dir"processed_allelic_counts/allelic_counts_gene
 # This is our covariate file
 sva_loading_file=$preprocess_dir"covariates/sva_loadings.txt"
 
+
+# PCA loadings for our samples (done independently in each time step)
+#  Therefor, there is one file for each time step
+pca_loading_file_stem=$preprocess_dir"covariates/pca_loadings_time_step_independent_"
+
 # Processed total expression data
 # This is the quantile normalized expression data
 quantile_normalized_expression=$preprocess_dir"processed_total_expression/quantile_normalized.txt"
 
+#  Processed total expression data that was processed independently at each time point
+# This is the quantile normalized data
+quantile_normalized_time_step_independent_expression=$preprocess_dir"processed_total_expression/time_step_independent_quantile_normalized.txt"
+
 # Processed and corrected total expression data
 # This the quantile normalized expression data with the SVA latent factors regressed out
 corrected_quantile_normalized_expression=$preprocess_dir"processed_total_expression/quant_expr_sva_corrected.txt"
+
 
 # Gencode hg19 gene annotation file
 gencode_gene_annotation_file="/project2/gilad/bstrober/ipsc_differentiation/preprocess_input_data/gencode.v19.annotation.gtf.gz"
@@ -140,22 +150,37 @@ fi
 ##########################################
 ### Run independent time step e-qtl analysis
 ##########################################
+############# Parameters #################
 # Cis eqtl distance (EAGLE used 200 KB)
-distance="100000"
+distance="50000"
+
 # Minimum fraction of valid samples with less popular version of regulatory variant (homozygous reg variant vs heterozygous reg variant)
 maf_cutoff=".1"
+
 # The way in which we normalize the data
 # Currently implemented for:
 #####1. 'none'
 #####2. 'standardize'
 #####3. 'gaussian_projection'
-normalization_method="standardize"
+normalization_method="none"
 
-if false; then
+# The way in which the data was prepared
+# Currently implemented for:
+#####1. 'time_step_aggregrated'  (quantile normalization and hidden factor correction was done across all samples. But regressed at each time step seperately)
+#####2. 'time_step_independent'  (quantile normalization and hidden factor correction was done independently at each time step)
+#####3. 'time_step_aggregrated_all_regressed' (quantile normalization and hidden factor correction was done across all samples and regressed across all samples)
+data_prep_version="time_step_aggregrated_all_regressed"
+
+# The number of PCs to inlcude in the model 
+num_pcs="21"
+
+
 for time_step in $(seq 0 15); do
-    sbatch independent_time_step_eqtl_driver.sh $dosage_genotype_file $corrected_quantile_normalized_expression $gencode_gene_annotation_file $independent_time_step_eqtl_dir $distance $maf_cutoff $time_step $visualize_independent_time_step_eqtl_dir $full_ipsc_qtl_data $full_heart_eqtl_data $normalization_method
+    sbatch independent_time_step_eqtl_driver.sh $dosage_genotype_file $quantile_normalized_expression $gencode_gene_annotation_file $independent_time_step_eqtl_dir $distance $maf_cutoff $time_step $visualize_independent_time_step_eqtl_dir $full_ipsc_qtl_data $full_heart_eqtl_data $normalization_method $data_prep_version $num_pcs $quantile_normalized_time_step_independent_expression $pca_loading_file_stem$time_step".txt" $sva_loading_file
 done
 
 
+
+if false; then
 Rscript visualize_eqtls_across_time_steps.R $visualize_independent_time_step_eqtl_dir $distance $maf_cutoff $normalization_method $independent_time_step_eqtl_dir
 fi
