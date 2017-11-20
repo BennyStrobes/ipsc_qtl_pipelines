@@ -53,6 +53,11 @@ full_ipsc_qtl_data="/project2/gilad/bstrober/ipsc_differentiation/preprocess_inp
 # downloaded from https://www.gtexportal.org/home/datasets/ on 10/30/17
 full_heart_eqtl_data="/project2/gilad/bstrober/ipsc_differentiation/preprocess_input_data/Heart_Left_Ventricle.v7.egenes.txt"
 
+
+# Downloaded from http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/chromInfo.txt.gz on 10/20/17
+# Required by WASP
+chrom_info_file="/project2/gilad/bstrober/ipsc_differentiation/preprocess_input_data/chromInfo.txt"
+
 ##########################################################################
 # Output Directories (Assumes these directories exist before script starts)
 ##########################################################################
@@ -204,10 +209,6 @@ data_prep_version="time_step_independent"
 num_pcs="3"
 Rscript visualize_eqtls_across_time_steps.R $visualize_independent_time_step_eqtl_dir $distance $maf_cutoff $normalization_method $independent_time_step_eqtl_dir $data_prep_version $num_pcs
 fi
-
-
-
-
 
 
 
