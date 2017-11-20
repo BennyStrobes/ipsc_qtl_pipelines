@@ -27,8 +27,9 @@ gene_location_file_name = args[4];
 # Covariates file name
 covariate_input_file = args[7];
 data_prep_version = args[8];
+num_pcs = as.numeric(args[9]);
 # Set to character() for no covariates
-if (data_prep_version == "time_step_aggregrated_all_regressed") {
+if (data_prep_version == "time_step_aggregrated_all_regressed" || num_pcs == 0) {
     covariates_file_name = character();
 } else {
     covariates_file_name = covariate_input_file;

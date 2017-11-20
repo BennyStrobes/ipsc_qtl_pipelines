@@ -23,6 +23,8 @@ eqtl_comparison_to_reference_bar_plot <- function(file_stem, output_file) {
         pvalues <- c(pvalues,data$matched_pvalue)
         time_step <- c(time_step, rep(temp_time_step, length(data$matched_pvalue)))
         version <- c(version, as.character(rep("matched", length(data$matched_pvalue))))
+        print(temp_time_step)
+        print(wilcox.test(data$real_pvalue,data$matched_pvalue))
     }
     df <- data.frame(pvalues = as.numeric(pvalues), version = factor(version,c("real","matched")), time_step = factor(time_step))
 
@@ -119,15 +121,17 @@ visualization_directory = args[1]
 distance = args[2]
 maf_cutoff = args[3]
 normalization_method = args[4]
-independent_time_step_eqtl_dir = args[5] 
+independent_time_step_eqtl_dir = args[5]
+data_prep_version = args[6]
+num_pcs = args[7]
 
 
 #############################################
 # Make histogram of nominal pvalue distribution for each time step
 # Then put each time step on one plot
-file_stem <- paste0(independent_time_step_eqtl_dir, "eqtl_prepare_eqtl_distance_",distance,"_maf_cutoff_",maf_cutoff,"_normalization_meth_",normalization_method,"_time_step_")
-output_file <- paste0(visualization_directory, "nominal_eqtl_pvalue_histogram_",distance,"_maf_cutoff_",maf_cutoff,"_normalization_meth_",normalization_method, "_histogram_across_time_steps.pdf")
-pvalue_histogram_across_time_steps(file_stem, output_file)
+file_stem <- paste0(independent_time_step_eqtl_dir, "eqtl_prepare_eqtl_distance_",distance,"_maf_cutoff_",maf_cutoff,"_normalization_meth_",normalization_method,"_data_prep_",data_prep_version,"_num_pcs_",num_pcs,"_time_step_")
+output_file <- paste0(visualization_directory, "nominal_eqtl_pvalue_histogram_",distance,"_maf_cutoff_",maf_cutoff,"_normalization_meth_",normalization_method,"_data_prep_",data_prep_version,"_num_pcs_",num_pcs, "_histogram_across_time_steps.pdf")
+# pvalue_histogram_across_time_steps(file_stem, output_file)
 
 
 
@@ -136,12 +140,12 @@ pvalue_histogram_across_time_steps(file_stem, output_file)
 # Plot distribution of pvalues found in our eqtl data
 # But only those variant-gene pairs that are found in:
 ## a. Nick Banovich's ipsc data
-ipsc_file_stem <- paste0(visualization_directory, "ipsc_banovich_comparison_distance_",distance,"_maf_cutoff_",maf_cutoff,"_normalization_meth_",normalization_method,"_time_step_")
-ipsc_plot_file <- paste0(visualization_directory, "ipsc_banovich_comparison_distance_",distance,"_maf_cutoff_",maf_cutoff,"_normalization_meth_",normalization_method, "_bar_plot.png")
-#eqtl_comparison_to_reference_bar_plot(ipsc_file_stem, ipsc_plot_file)
+ipsc_file_stem <- paste0(visualization_directory, "ipsc_banovich_comparison_distance_",distance,"_maf_cutoff_",maf_cutoff,"_normalization_meth_",normalization_method,"_data_prep_",data_prep_version,"_num_pcs_",num_pcs,"_time_step_")
+ipsc_plot_file <- paste0(visualization_directory, "ipsc_banovich_comparison_distance_",distance,"_maf_cutoff_",maf_cutoff,"_normalization_meth_",normalization_method,"_data_prep_",data_prep_version,"_num_pcs_",num_pcs,"_bar_plot.png")
+eqtl_comparison_to_reference_bar_plot(ipsc_file_stem, ipsc_plot_file)
 
 ## b. GTEx Heart left ventricle data
-gtex_file_stem <- paste0(visualization_directory, "gtex_v7_heart_left_ventricle_comparison_distance_",distance,"_maf_cutoff_",maf_cutoff,"_normalization_meth_",normalization_method,"_time_step_")
-gtex_plot_file <- paste0(visualization_directory, "gtex_v7_heart_left_ventricle_comparison_distance_",distance,"_maf_cutoff_",maf_cutoff,"_normalization_meth_",normalization_method, "_bar_plot.png")
-#eqtl_comparison_to_reference_bar_plot(gtex_file_stem, gtex_plot_file)
+gtex_file_stem <- paste0(visualization_directory, "gtex_v7_heart_left_ventricle_comparison_distance_",distance,"_maf_cutoff_",maf_cutoff,"_normalization_meth_",normalization_method,"_data_prep_",data_prep_version,"_num_pcs_",num_pcs,"_time_step_")
+gtex_plot_file <- paste0(visualization_directory, "gtex_v7_heart_left_ventricle_comparison_distance_",distance,"_maf_cutoff_",maf_cutoff,"_normalization_meth_",normalization_method,"_data_prep_",data_prep_version,"_num_pcs_",num_pcs, "_bar_plot.png")
+eqtl_comparison_to_reference_bar_plot(gtex_file_stem, gtex_plot_file)
 

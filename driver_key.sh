@@ -1,3 +1,5 @@
+#!/bin/bash
+#SBATCH --time=12:00:00 --mem=10GB
 
 # This scripts assumes you have run the ipsc_preproccess_pipeline first (https://github.com/BennyStrobes/ipsc_preprocess_pipeline)
 # And have save the results here:
@@ -70,8 +72,12 @@ independent_time_step_eqtl_dir=$ipsc_qtl_root"independent_time_step_eqtl/"
 # Output directory for visualizations/plots related to running eqtl analysis at each time step independently
 visualize_independent_time_step_eqtl_dir=$ipsc_qtl_root"visualize_independent_time_step_eqtl/"
 
+# Output directory for optimizing number of PCs to regress out for eqtl analysis
+optimize_number_pcs_dir=$ipsc_qtl_root"optimize_number_pcs/"
+
 # Output directory for running dynamic qtl analysis on simulated data
 simulated_dynamic_qtl_dir=$ipsc_qtl_root"simulated_dynamic_qtl/"
+
 
 
 
@@ -147,9 +153,9 @@ fi
 
 
 
-##########################################
+##################################################################
 ### Run independent time step e-qtl analysis
-##########################################
+##################################################################
 ############# Parameters #################
 # Cis eqtl distance (EAGLE used 200 KB)
 distance="50000"
@@ -169,18 +175,70 @@ normalization_method="none"
 #####1. 'time_step_aggregrated'  (quantile normalization and hidden factor correction was done across all samples. But regressed at each time step seperately)
 #####2. 'time_step_independent'  (quantile normalization and hidden factor correction was done independently at each time step)
 #####3. 'time_step_aggregrated_all_regressed' (quantile normalization and hidden factor correction was done across all samples and regressed across all samples)
-data_prep_version="time_step_aggregrated_all_regressed"
+data_prep_version="time_step_independent"
+
+
+### We first need to optimize the number of principal components to use
+time_step_for_optimization_of_pcs="0"
+if false; then
+sh optimize_number_pcs_for_eqtl_driver.sh $dosage_genotype_file $quantile_normalized_expression $gencode_gene_annotation_file $optimize_number_pcs_dir $distance $maf_cutoff $time_step_for_optimization_of_pcs $normalization_method $data_prep_version $quantile_normalized_time_step_independent_expression $pca_loading_file_stem$time_step_for_optimization_of_pcs".txt" $sva_loading_file
+fi
 
 # The number of PCs to inlcude in the model 
-num_pcs="21"
+num_pcs="1"
 
-
+if false; then
 for time_step in $(seq 0 15); do
     sbatch independent_time_step_eqtl_driver.sh $dosage_genotype_file $quantile_normalized_expression $gencode_gene_annotation_file $independent_time_step_eqtl_dir $distance $maf_cutoff $time_step $visualize_independent_time_step_eqtl_dir $full_ipsc_qtl_data $full_heart_eqtl_data $normalization_method $data_prep_version $num_pcs $quantile_normalized_time_step_independent_expression $pca_loading_file_stem$time_step".txt" $sva_loading_file
 done
-
+fi
 
 
 if false; then
-Rscript visualize_eqtls_across_time_steps.R $visualize_independent_time_step_eqtl_dir $distance $maf_cutoff $normalization_method $independent_time_step_eqtl_dir
+num_pcs="3"
+Rscript visualize_eqtls_across_time_steps.R $visualize_independent_time_step_eqtl_dir $distance $maf_cutoff $normalization_method $independent_time_step_eqtl_dir $data_prep_version $num_pcs
+
+data_prep_version="time_step_independent"
+
+
+num_pcs="3"
+Rscript visualize_eqtls_across_time_steps.R $visualize_independent_time_step_eqtl_dir $distance $maf_cutoff $normalization_method $independent_time_step_eqtl_dir $data_prep_version $num_pcs
 fi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##################################################################
+### Run Combined Haplotype Test (CHT / WASP)
+##################################################################
+
+
+
+
+
+
+
+
+
+
